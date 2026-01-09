@@ -33,19 +33,14 @@
 ## Cài đặt và Chạy dự án
 
 ### 1. Clone Repository
-```bash
 git clone https://github.com/wimaniac/AI-Research-Assistant
 cd ai-research-assistant
 ### 2. Thiết lập môi trường ảo
-```bash
 python -m venv venv
 .\venv\Scripts\activate
 ### 3. Cài đặt thư viện
-```bash
 pip install -r requirements.txt
 ### 4. Cấu hình API Key
-```bash
 GOOGLE_API_KEY=YOUR_API_KEY
 ### 5. Chạy ứng dụng
-```bash
 streamlit run main.py
