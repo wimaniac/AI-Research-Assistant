@@ -36,22 +36,22 @@
 ```bash
 git clone https://github.com/wimaniac/AI-Research-Assistant
 cd ai-research-assistant
-```bash
+```
 ### 2. Thiết lập môi trường ảo
 ```bash
 python -m venv venv
 .\venv\Scripts\activate
-```bash
+```
 ### 3. Cài đặt thư viện
 ```bash
 pip install -r requirements.txt
-```bash
+```
 ### 4. Cấu hình API Key
 ```bash
 GOOGLE_API_KEY=YOUR_API_KEY
-```bash
+```
 ### 5. Chạy ứng dụng
 ```bash
 streamlit run main.py
-```bash
+```
 
