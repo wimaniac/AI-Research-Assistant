@@ -14,7 +14,6 @@ class SimpleEnsembleRetriever(BaseRetriever):
 
     def _get_relevant_documents(self, query: str) -> List[Document]:
         """Lấy tài liệu liên quan từ tất cả retrievers và merge"""
-        all_docs = []
         doc_scores = {}
 
         # Lấy kết quả từ mỗi retriever

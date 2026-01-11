@@ -33,7 +33,7 @@ def run_research(topic: str):
 
     # Lọc trùng lặp URL
     all_urls = list(set(all_urls))
-    print(f"🔗 Tìm thấy {len(all_urls)} đường link liên quan.")
+    print(f"Tìm thấy {len(all_urls)} đường link liên quan.")
 
     # Đọc nội dung (Scrape)
     if not all_urls:
@@ -65,4 +65,7 @@ def run_research(topic: str):
     writer_chain = WRITER_PROMPT | llm | StrOutputParser()
     final_report = writer_chain.invoke({"topic": topic, "context": context_text})
 
-    return final_report
+    return {
+        "report": final_report,
+        "retriever": retriever  # Trả về bộ nhớ để chat tiếp
+    }
