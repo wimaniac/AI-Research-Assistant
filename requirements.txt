@@ -6,7 +6,7 @@ langchain-google-genai
 langchain-ollama
 faiss-cpu
 rank_bm25
-duckduckgo-search
+duckduckgo-search>=6.1.0
 beautifulsoup4
 streamlit
 python-dotenv
