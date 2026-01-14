@@ -7,7 +7,7 @@ load_dotenv()
 if "GOOGLE_API_KEY" not in os.environ:
     raise ValueError("GOOGLE_API_KEY chưa được cấu hình trong file .env")
 
-def get_llm(model_name="gemini-flash-latest"):
+def get_llm(model_name="gemini-1.5-flash"):
     """
     Khởi tạo mô hình Google Gemini.
     """
