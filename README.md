@@ -1,4 +1,4 @@
-# 🕵️ AI Research Assistant (End-to-End RAG)
+# 🕵️ AI Research Assistant (End-to-End Agentic RAG)
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)
 ![LangGraph](https://img.shields.io/badge/LangGraph-Stateful_Agent-purple)
