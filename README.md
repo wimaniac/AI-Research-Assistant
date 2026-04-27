@@ -1,41 +1,54 @@
 # 🕵️ AI Research Assistant (End-to-End RAG)
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)
-![LangChain](https://img.shields.io/badge/LangChain-v0.3-green)
+![LangGraph](https://img.shields.io/badge/LangGraph-Stateful_Agent-purple)
 ![Streamlit](https://img.shields.io/badge/Streamlit-App-red)
-![Google Gemini](https://img.shields.io/badge/AI-Google_Gemini-orange)
+![Ollama Local](https://img.shields.io/badge/AI-Ollama_Local-orange)
 
-**AI Research Assistant** là một hệ thống Agentic RAG thông minh giúp tự động hóa quy trình nghiên cứu thông tin. Thay vì chỉ tìm kiếm từ khóa đơn giản, hệ thống lập kế hoạch, thu thập dữ liệu từ Internet, đọc hiểu hàng chục trang tài liệu và tổng hợp thành báo cáo chuyên sâu.
+**AI Research Assistant** là một hệ thống **Agentic RAG có trạng thái (Stateful)** được xây dựng trên nền tảng LangGraph. Thay vì chỉ tìm kiếm tuyến tính, hệ thống hoạt động như một nhóm chuyên gia: tự động lập kế hoạch, thu thập dữ liệu, tự đánh giá tính đầy đủ của thông tin, lặp lại quá trình tìm kiếm nếu cần, và cuối cùng tổng hợp thành một báo cáo chuyên sâu.
 
 Điểm đặc biệt của dự án là việc triển khai kỹ thuật **Hybrid Search (Tìm kiếm lai)** kết hợp giữa `FAISS` (Vector Search) và `BM25` (Keyword Search) để tối ưu hóa độ chính xác khi truy xuất thông tin.
 
 ## Tính năng nổi bật
 
+* **Luồng đa tác nhân (Multi-Agent Workflow):** Quản lý quy trình phức tạp bằng đồ thị trạng thái LangGraph (Plan -> Retrieve -> Evaluate -> Refine -> Summarize).
 * **Lập kế hoạch tự động (Auto-Planning):** AI tự động phân tích chủ đề và sinh ra các từ khóa tìm kiếm tối ưu nhất.
 * **Thu thập dữ liệu thời gian thực:** Sử dụng Tavily và Web Scraper đa luồng (Multi-threading) để đọc nội dung từ Internet.
+* **Vòng lặp tự đánh giá (Self-Reflection):** Tác nhân "Evaluator" sẽ kiểm tra xem dữ liệu thu thập đã đủ chưa, nếu chưa sẽ yêu cầu tìm kiếm thêm.
 * **Hybrid Search (RAG nâng cao):**
     * Sử dụng **FAISS** để tìm kiếm theo ngữ nghĩa (Semantic Search).
     * Sử dụng **BM25** để tìm kiếm theo từ khóa chính xác (Lexical Search).
     * Kết hợp bằng thuật toán **Ensemble Retriever** (Custom Implementation).
-* **Viết báo cáo tự động:** Tổng hợp thông tin từ nhiều nguồn và viết báo cáo Markdown có cấu trúc.
-* **Tốc độ cao:** Sử dụng Google Gemini 1.5 Flash cho tốc độ xử lý Context Window lớn cực nhanh.
+    * Tích hợp **Cross-Encoder Reranker** để xếp hạng lại tài liệu, tối ưu hóa Context Window.
+* **Trích dẫn nguồn rõ ràng:** Báo cáo đầu ra luôn đính kèm danh sách các URL đã tham khảo.
+* **Giao diện thời gian thực:** Streamlit UI hiển thị trực tiếp tiến trình suy nghĩ và làm việc của AI (Streaming Progress).
+* **Kiến trúc Tách biệt (Decoupled Architecture):** Backend xử lý AI bằng FastAPI, Frontend hiển thị bằng Streamlit, giao tiếp qua REST API (NDJSON streaming).
 
 ## Công nghệ sử dụng
 
 * **Language:** Python
-* **Framework:** [LangChain](https://www.langchain.com/)
-* **LLM & Embeddings:** Google Gemini (via `langchain-google-genai`)
+* **Framework:** LangChain & LangGraph
+* **LLM & Embeddings:** Llama 3.1 (via Ollama) & BGE Embeddings (via HuggingFace)
 * **Vector Store:** FAISS (CPU)
-* **Retrieval Algorithm:** BM25 + Ensemble Retriever
-* **Frontend:** Streamlit
-* **Search Engine:** DuckDuckGo
+* **Retrieval Algorithm:** BM25 + Ensemble Retriever + Cross-Encoder
+* **Backend:** FastAPI & Uvicorn
+* **Frontend:** Streamlit (via Requests)
+* **Search Engine:** Tavily Search API
 
 ## Cài đặt và Chạy dự án
 
-### 1. Clone Repository
+### 1. Yêu cầu
+- Python 3.10+
+- [Ollama](https://ollama.com/) đã được cài đặt và đang chạy. Tải mô hình `llama3.1`:
+  ```bash
+  ollama pull llama3.1
+  ```
+- API Key cho Tavily Search.
+
+### 2. Clone Repository
 ```bash
 git clone https://github.com/wimaniac/AI-Research-Assistant
-cd ai-research-assistant
+cd AI-Research-Assistant
 ```
 ### 2. Thiết lập môi trường ảo
 ```bash
@@ -54,4 +67,3 @@ GOOGLE_API_KEY=YOUR_API_KEY
 ```bash
 streamlit run main.py
 ```
-

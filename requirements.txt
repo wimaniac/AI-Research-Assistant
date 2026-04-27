@@ -1,15 +1,20 @@
+--extra-index-url https://download.pytorch.org/whl/cu124
+torch==2.6.0+cu124
+torchvision
+torchaudio
 langchain
 langchain-community
 langchain-core
 langchain-text-splitters
-langchain-google-genai
 langchain-ollama
 faiss-cpu
 rank_bm25
 beautifulsoup4
 streamlit
 python-dotenv
-tiktoken
-ddgs
 tavily-python
-python-dotenv
+langchain_huggingface
+sentence-transformers
+langgraph
+fastapi
+uvicorn

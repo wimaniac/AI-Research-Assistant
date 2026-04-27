@@ -1,29 +1,28 @@
 import os
 from dotenv import load_dotenv
-from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
-
+from langchain_ollama import ChatOllama
+from langchain_huggingface import HuggingFaceEmbeddings
 load_dotenv()
 
-if "GOOGLE_API_KEY" not in os.environ:
-    raise ValueError("GOOGLE_API_KEY chưa được cấu hình trong file .env")
-
-def get_llm(model_name="gemini-2.0-flash"):
+def get_llm(model_name="llama3.1:latest"):
     """
-    Khởi tạo mô hình Google Gemini.
+    Khởi tạo mô hình ngôn ngữ lớn (LLM) Local qua Ollama.
     """
-    llm = ChatGoogleGenerativeAI(
+    llm = ChatOllama(
         model=model_name,
-        temperature=0.3,
-        max_output_tokens=4096,
-        convert_system_message_to_human=True
+        temperature=0,
+        request_timeout=120.0,
+        num_ctx=2048  # Giảm xuống 2048 để tránh lỗi "unable to allocate CPU buffer"
     )
     return llm
 
 def get_embeddings():
     """
-    Khởi tạo mô hình Embedding của Google để dùng cho Vector Store.
+    Khởi tạo mô hình Embedding Local (BGE) qua HuggingFace.
     """
-    embeddings = GoogleGenerativeAIEmbeddings(
-        model="models/text-embedding-004"
+    embeddings = HuggingFaceEmbeddings(
+        model_name="BAAI/bge-base-en-v1.5",
+        model_kwargs={'device': 'cuda'}, 
+        encode_kwargs={'normalize_embeddings': True}
     )
     return embeddings

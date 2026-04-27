@@ -2,70 +2,94 @@ from core.llm import get_llm, get_embeddings
 from core.search import search_web
 from core.scraper import scrape_urls
 from core.rag_pipeline import create_retriever
-from agents.prompts import PLANNER_PROMPT, WRITER_PROMPT
+from agents.prompts import PLANNER_PROMPT, WRITER_PROMPT, EVALUATOR_PROMPT
 from langchain_core.output_parsers import StrOutputParser
 
 
-def run_research(topic: str):
+def run_research(topic: str, max_iterations: int = 3):
     """
-    Hàm chính thực thi toàn bộ quy trình nghiên cứu:
-    1. Plan -> 2. Search -> 3. Scrape -> 4. Index (RAG) -> 5. Write
+    Hàm chính thực thi quy trình Agentic RAG:
+    1. Plan -> 2. Search & Retrieve (Loop) -> 3. Evaluate (Loop) -> 4. Synthesize
     """
     llm = get_llm()
     embeddings = get_embeddings()
 
-    # --- GIAI ĐOẠN 1: LẬP KẾ HOẠCH (PLANNING) ---
+    # --- BƯỚC 1: LẬP KẾ HOẠCH (PLANNING) ---
     print(f"Đang lập kế hoạch nghiên cứu về: {topic}...")
     planner_chain = PLANNER_PROMPT | llm | StrOutputParser()
     plan_result = planner_chain.invoke({"topic": topic})
 
-    # Tách kết quả thành list các câu query
-    queries = [q.strip() for q in plan_result.split('\n') if q.strip()]
-    print(f"Các từ khóa tìm kiếm: {queries}")
+    queries_to_process = [q.strip() for q in plan_result.split('\n') if q.strip()]
+    print(f"Các từ khóa tìm kiếm ban đầu: {queries_to_process}")
 
-    # --- GIAI ĐOẠN 2: TÌM KIẾM & THU THẬP (RESEARCH) ---
-    all_urls = []
-    # Tìm kiếm cho từng query (Lấy top 2 mỗi query để không quá nhiều rác)
-    for query in queries:
-        search_res = search_web(query, max_results=2)
-        urls = [item['link'] for item in search_res]
-        all_urls.extend(urls)
+    all_scraped_docs = []
+    collected_context_chunks = []
+    iteration = 0
 
-    # Lọc trùng lặp URL
-    all_urls = list(set(all_urls))
-    print(f"Tìm thấy {len(all_urls)} đường link liên quan.")
+    # --- BƯỚC 2 & 3: VÒNG LẶP TÌM KIẾM VÀ ĐÁNH GIÁ ---
+    while queries_to_process and iteration < max_iterations:
+        iteration += 1
+        print(f"\n--- Vòng lặp thu thập thứ {iteration}/{max_iterations} ---")
+        
+        for query in queries_to_process:
+            print(f"🔎 Đang xử lý sub-question: {query}")
+            search_res = search_web(query, max_results=2)
+            urls = [item['link'] for item in search_res if item.get('link')]
+            
+            if urls:
+                urls = list(set(urls)) # Lọc trùng
+                docs = scrape_urls(urls)
+                if docs:
+                    all_scraped_docs.extend(docs)
+                    # Tạo retriever tạm để rút trích top-k chunks cho query này
+                    temp_retriever = create_retriever(docs, embeddings)
+                    if temp_retriever:
+                        relevant_chunks = temp_retriever.invoke(query)
+                        # Lưu vào memory
+                        collected_context_chunks.extend(relevant_chunks)
 
-    # Đọc nội dung (Scrape)
-    if not all_urls:
-        return "Xin lỗi, tôi không tìm thấy tài liệu nào trên internet về chủ đề này."
+        # Nếu không có chunks nào thì dừng
+        if not collected_context_chunks:
+            return {"report": "Không thu thập được thông tin nào từ Internet.", "retriever": None}
 
-    docs = scrape_urls(all_urls)
-    if not docs:
-        return "Không thể đọc nội dung từ các đường link tìm được (có thể do chặn bot)."
+        # Gộp context hiện tại để đánh giá
+        # Loại bỏ các chunk trùng lặp để tiết kiệm context window
+        unique_chunks = {chunk.page_content: chunk for chunk in collected_context_chunks}.values()
+        current_context_text = "\n\n".join([d.page_content for d in unique_chunks])
 
-    # --- GIAI ĐOẠN 3: XỬ LÝ RAG (INDEXING) ---
-    print("Đang tổng hợp và ghi nhớ kiến thức...")
-    # Sử dụng class SimpleEnsembleRetriever của bạn ở bước này
-    retriever = create_retriever(docs, embeddings)
+        # --- BƯỚC 4: ĐÁNH GIÁ (EVALUATOR) ---
+        print("⚖️ Đang đánh giá độ đầy đủ của thông tin...")
+        evaluator_chain = EVALUATOR_PROMPT | llm | StrOutputParser()
+        eval_result = evaluator_chain.invoke({
+            "topic": topic,
+            "context": current_context_text
+        })
+        
+        eval_lines = [line.strip() for line in eval_result.strip().split('\n') if line.strip()]
+        decision = eval_lines[0].upper() if eval_lines else "NO"
+        
+        if "YES" in decision and len(eval_lines) > 1:
+            print("⚠️ Phát hiện thiếu thông tin. Sinh truy vấn mới...")
+            queries_to_process = eval_lines[1:]
+            print(f"Các từ khóa bổ sung: {queries_to_process}")
+        else:
+            print("✅ Thông tin đã đầy đủ. Chuyển sang viết báo cáo.")
+            queries_to_process = [] # Đã đủ, thoát vòng lặp
 
-    if not retriever:
-        return "Dữ liệu quá ngắn để phân tích."
+    # Tạo retriever tổng thể từ tất cả doc đã scrape cho chức năng Q&A sau đó
+    final_retriever = None
+    if all_scraped_docs:
+        final_retriever = create_retriever(all_scraped_docs, embeddings)
 
-    # --- GIAI ĐOẠN 4: VIẾT BÁO CÁO (WRITING) ---
-    print("Đang viết báo cáo...")
-
-    # Truy xuất thông tin quan trọng nhất từ bộ nhớ vừa tạo
-    # Hỏi retriever chính chủ đề gốc để lấy context tổng quan
-    relevant_docs = retriever.invoke(topic)
-
-    # Ghép nội dung các doc lại thành 1 chuỗi context
-    context_text = "\n\n".join([d.page_content for d in relevant_docs])
-
-    # Gọi LLM viết bài
+    # --- BƯỚC 5: TỔNG HỢP VÀ VIẾT BÁO CÁO (SYNTHESIZER) ---
+    print("📝 Đang tổng hợp kiến thức và viết báo cáo...")
+    unique_chunks = {chunk.page_content: chunk for chunk in collected_context_chunks}.values()
+    final_context_text = "\n\n".join([d.page_content for d in unique_chunks])
+    
     writer_chain = WRITER_PROMPT | llm | StrOutputParser()
-    final_report = writer_chain.invoke({"topic": topic, "context": context_text})
+    final_report = writer_chain.invoke({"topic": topic, "context": final_context_text})
 
     return {
         "report": final_report,
-        "retriever": retriever  # Trả về bộ nhớ để chat tiếp
+        "retriever": final_retriever  # Trả về bộ nhớ đầy đủ để chat tiếp
     }
